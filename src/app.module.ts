@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { MarketDataModule } from './market-data/market-data.module';
+import { HealthController } from './shared/infrastructure/http/health.controller';
 import { DatabaseModule } from './shared/infrastructure/persistence/typeorm/database.module';
 import { PurchasesModule } from './purchases/purchases.module';
 import { UsersModule } from './users/users.module';
@@ -31,7 +32,7 @@ const GLOBAL_THROTTLE_LIMIT = 100;
     WatchlistModule,
     PurchasesModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

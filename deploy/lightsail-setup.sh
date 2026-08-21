@@ -35,7 +35,7 @@ set -euo pipefail
 # código con scp/rsync desde la máquina local, dejar vacío y subir el
 # proyecto a mano a $APP_DIR antes de correr este script (o después, editando
 # el bloque marcado abajo).
-REPO_URL=""
+REPO_URL="https://github.com/israelvargasm2/investment-portfolio.git"
 
 APP_DIR="$HOME/investment-portfolio-api"
 NODE_MAJOR="20"                 # LTS — misma major usada en desarrollo
@@ -180,3 +180,4 @@ echo "3. Si hay un dominio apuntando a la IP de esta instancia, correr certbot p
 echo "     sudo apt-get install -y certbot python3-certbot-nginx"
 echo "     sudo certbot --nginx -d ${DOMAIN:-tu-dominio.com}"
 echo "4. Para actualizar la app más adelante: git pull (o volver a subir el código), npm ci, npm run build, pm2 restart investment-portfolio-api"
+#git pull && npm ci && npm run build && pm2 restart
