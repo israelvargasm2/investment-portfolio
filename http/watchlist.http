@@ -1,0 +1,79 @@
+@baseUrl = http://localhost:3000
+@accessToken = PEGA_AQUI_EL_ACCESS_TOKEN_DE_AUTH_HTTP
+
+### Agregar un stock a la watchlist
+POST {{baseUrl}}/watchlist
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "AAPL",
+  "assetType": "stock"
+}
+
+### Agregar una cripto a la watchlist (id de CoinGecko)
+POST {{baseUrl}}/watchlist
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "bitcoin",
+  "assetType": "crypto"
+}
+
+### Error 409: agregar un activo que ya está en la watchlist
+POST {{baseUrl}}/watchlist
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "AAPL",
+  "assetType": "stock"
+}
+
+### Error 400: assetType inválido
+POST {{baseUrl}}/watchlist
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "AAPL",
+  "assetType": "invalid"
+}
+
+### Listar la watchlist del usuario autenticado
+GET {{baseUrl}}/watchlist
+Authorization: Bearer {{accessToken}}
+
+### Editar un item (reemplaza el id por uno real devuelto al agregar/listar)
+@watchlistItemId = PEGA_AQUI_UN_ID_REAL
+
+PATCH {{baseUrl}}/watchlist/{{watchlistItemId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "MSFT",
+  "assetType": "stock"
+}
+
+### Error 404: editar un item que no existe o no es tuyo
+PATCH {{baseUrl}}/watchlist/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "MSFT",
+  "assetType": "stock"
+}
+
+### Quitar un item
+DELETE {{baseUrl}}/watchlist/{{watchlistItemId}}
+Authorization: Bearer {{accessToken}}
+
+### Error 404: quitar un item que no existe o no es tuyo
+DELETE {{baseUrl}}/watchlist/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+### Error 401: sin token
+GET {{baseUrl}}/watchlist

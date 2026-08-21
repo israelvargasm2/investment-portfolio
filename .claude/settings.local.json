@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(npx jest *)",
+      "Bash(npm run *)",
+      "Bash(curl -s \"http://localhost:3000/assets/prices?cryptos=bitcoin,not-a-real-coin&stocks=AAPL&currency=usd\")",
+      "Bash(powershell -Command 'Get-Process node -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowTitle -eq '\\\\'''\\\\''} | Stop-Process -Force')",
+      "Bash(taskkill //F //IM node.exe //FI \"WINDOWTITLE eq *\")",
+      "Read(//c/Users/isravarg/Projects/investment-portfolio-2/investment-portfolio-web/**)",
+      "Bash(npx ng *)"
+    ]
+  }
+}

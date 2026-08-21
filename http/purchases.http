@@ -1,0 +1,89 @@
+@baseUrl = http://localhost:3000
+@accessToken = PEGA_AQUI_EL_ACCESS_TOKEN_DE_AUTH_HTTP
+
+### Registrar una compra de stock
+POST {{baseUrl}}/purchases
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "AAPL",
+  "assetType": "stock",
+  "quantity": 10,
+  "purchasePriceAmount": 150,
+  "currency": "USD",
+  "purchasedAt": "2026-01-15T00:00:00.000Z"
+}
+
+### Registrar una compra de cripto (id de CoinGecko)
+POST {{baseUrl}}/purchases
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "bitcoin",
+  "assetType": "crypto",
+  "quantity": 0.05,
+  "purchasePriceAmount": 45000,
+  "currency": "USD",
+  "purchasedAt": "2026-02-01T00:00:00.000Z"
+}
+
+### Error 400: fecha de compra futura
+POST {{baseUrl}}/purchases
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "AAPL",
+  "assetType": "stock",
+  "quantity": 1,
+  "purchasePriceAmount": 150,
+  "currency": "USD",
+  "purchasedAt": "2099-01-01T00:00:00.000Z"
+}
+
+### Listar compras con ganancia/pérdida vs. precio actual
+GET {{baseUrl}}/purchases
+Authorization: Bearer {{accessToken}}
+
+### Editar una compra (reemplaza el id por uno real devuelto al crear/listar)
+@purchaseId = PEGA_AQUI_UN_ID_REAL
+
+PATCH {{baseUrl}}/purchases/{{purchaseId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "AAPL",
+  "assetType": "stock",
+  "quantity": 5,
+  "purchasePriceAmount": 160,
+  "currency": "USD",
+  "purchasedAt": "2026-01-20T00:00:00.000Z"
+}
+
+### Error 404: editar una compra que no existe o no es tuya
+PATCH {{baseUrl}}/purchases/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetSymbol": "AAPL",
+  "assetType": "stock",
+  "quantity": 5,
+  "purchasePriceAmount": 160,
+  "currency": "USD",
+  "purchasedAt": "2026-01-20T00:00:00.000Z"
+}
+
+### Quitar una compra
+DELETE {{baseUrl}}/purchases/{{purchaseId}}
+Authorization: Bearer {{accessToken}}
+
+### Error 404: quitar una compra que no existe o no es tuya
+DELETE {{baseUrl}}/purchases/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+### Error 401: sin token
+GET {{baseUrl}}/purchases

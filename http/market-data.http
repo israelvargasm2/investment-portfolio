@@ -1,0 +1,37 @@
+@baseUrl = http://localhost:3000
+
+### Lista de stocks y criptos disponibles para elegir (watchlist/purchases)
+GET {{baseUrl}}/assets/options
+
+### Precio de una sola stock (moneda por defecto: USD)
+GET {{baseUrl}}/assets/prices?stocks=AAPL
+
+### Precio de varias stocks en una moneda distinta a la nativa (requiere conversión)
+GET {{baseUrl}}/assets/prices?stocks=AAPL,MSFT&currency=EUR
+
+### Precio de una sola criptomoneda (id de CoinGecko, no ticker)
+GET {{baseUrl}}/assets/prices?cryptos=bitcoin
+
+### Precio de varias criptomonedas en una moneda específica
+GET {{baseUrl}}/assets/prices?cryptos=bitcoin,ethereum&currency=EUR
+
+### Mezcla de stocks y criptomonedas en la misma consulta
+GET {{baseUrl}}/assets/prices?stocks=AAPL,MSFT&cryptos=bitcoin,ethereum&currency=USD
+
+### Stock de la Bolsa Mexicana de Valores (sufijo ".MX"), en su moneda nativa (MXN)
+GET {{baseUrl}}/assets/prices?stocks=WALMEX.MX
+
+### Mismo stock de la BMV convertido a USD (requiere conversión MXN -> USD)
+GET {{baseUrl}}/assets/prices?stocks=WALMEX.MX&currency=USD
+
+### Mezcla de stocks de EE.UU. (USD nativo) y de la BMV (MXN nativo) en la misma consulta
+GET {{baseUrl}}/assets/prices?stocks=AAPL,WALMEX.MX&currency=MXN
+
+### Respuesta parcial: un id de cripto inválido no bloquea el resto de la respuesta
+GET {{baseUrl}}/assets/prices?stocks=AAPL&cryptos=bitcoin,not-a-real-coin&currency=USD
+
+### Error 400: ni "stocks" ni "cryptos" fueron enviados
+GET {{baseUrl}}/assets/prices
+
+### Error 400: código de moneda inválido (debe ser ISO 4217 de 3 letras)
+GET {{baseUrl}}/assets/prices?stocks=AAPL&currency=eur1

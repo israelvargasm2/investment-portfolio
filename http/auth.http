@@ -1,0 +1,36 @@
+@baseUrl = http://localhost:3000
+
+### Login con Google: pega aquí un ID token real obtenido del frontend
+# (Google Identity Services / Sign In With Google) o de la Playground de Google.
+# No es un access token de OAuth normal: debe ser el "credential" / id_token con formato JWT.
+POST {{baseUrl}}/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImYxMGY4NzQwNWE5NzljMWRmMzZkZjI2NjA2NzM0ZjMzY2Q4NWMyNzEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI2Njc5Mzk1MTAxNzgtbm11NWMzbzFzNWJxZDVqNmZyNHJlbTZhbDBvNWlxNTEuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI2Njc5Mzk1MTAxNzgtbm11NWMzbzFzNWJxZDVqNmZyNHJlbTZhbDBvNWlxNTEuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDQ5NjI5OTcwNTcxMDIyNDk0MzUiLCJlbWFpbCI6ImlzcmFlbHZhcmdhc20yQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYmYiOjE3ODY3MTY2MTIsIm5hbWUiOiJJc3JhZWwgVmFyZ2FzIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0kwU3l1V0x5OURVTmVpN25GbXRxWTFzcU9NVTZ3cHl2VnlNVzRTODhrVWQtNUtQdHM9czk2LWMiLCJnaXZlbl9uYW1lIjoiSXNyYWVsIiwiZmFtaWx5X25hbWUiOiJWYXJnYXMiLCJpYXQiOjE3ODY3MTY5MTIsImV4cCI6MTc4NjcyMDUxMiwianRpIjoiZGJkNjU2Mzk2NjMzNTQyN2E2NTNhMDhkZjAxZTBlMGI5NDUxYjE3OSJ9.bQV65S--HQTA5Ge_JzvwzQeg1K_4ddfP4rIB10WYqX-LNiSoa0mouKC_W4XOHern4ZNc7txjDe6gsht1VmxMCyvicJsMKBXXIYRKB7lRd6NKPigebHdwB5iblqzY9UoZsNC_8X5IZR_ekOQCol12v9g_VFzlv4sxvMsvMxX1pVZWu0XtcFoJeO6NmcnJF2_ESUlZzbjshuLGZi_doa7h3cUHfH7fZ1r2mOfi4c23urNyKjAR0k4ajbG9uwcZqxiq5KiYc-q0V_XcYrDTpdyvR3joPNq-_q9xqFi8xdytUNWdDjONyGP2Mu8yrFUGqDJ7ieC8v8w7m1TVp0RAhz3Mtg"
+}
+
+### Error 400: idToken vacío
+POST {{baseUrl}}/auth/google
+Content-Type: application/json
+
+{
+  "idToken": ""
+}
+
+### Error 401: idToken inválido/expirado
+POST {{baseUrl}}/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "esto-no-es-un-token-valido"
+}
+
+### Ruta protegida: usa el accessToken devuelto por /auth/google
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2MWU2MjlkNy0wM2U4LTQwYjQtOGM4ZS0yM2FmZDAzYzQyOGMiLCJlbWFpbCI6ImlzcmFlbHZhcmdhc20yQGdtYWlsLmNvbSIsImlhdCI6MTc4NjcxNzAyMSwiZXhwIjoxNzg2NzIwNjIxfQ.RE3TLZTIYYuc6yPYKJTIp9EqltmP3Ggw4VKBEkF_8o4
+
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+### Error 401: sin token
+GET {{baseUrl}}/auth/me

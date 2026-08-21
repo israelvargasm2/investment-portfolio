@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Google Sign-In (test)</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 640px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      textarea,
+      pre {
+        width: 100%;
+        box-sizing: border-box;
+        font-family: monospace;
+        font-size: 0.8rem;
+      }
+      .info {
+        background: #f5f5f5;
+        border-left: 4px solid #999;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Obtener ID token de Google</h1>
+
+    <!-- Herramienta local solo para desarrollo: no forma parte de la API. -->
+    <div class="info">
+      Antes de usar esta página: 1) reemplazá <code>CLIENT_ID</code> más abajo
+      por tu <code>GOOGLE_CLIENT_ID</code>, 2) agregá el origen desde el que
+      sirvas este archivo (ej. <code>http://localhost:5500</code>) como
+      "Authorized JavaScript origin" en Google Cloud Console, y 3) serví este
+      archivo con un servidor local (no lo abras como <code>file://</code>,
+      Google Identity Services lo bloquea). Por ejemplo:
+      <code>npx serve tools</code>.
+    </div>
+
+    <div id="g_id_onload" data-client_id="667939510178-nmu5c3o1s5bqd5j6fr4rem6al0o5iq51.apps.googleusercontent.com" data-callback="handleCredentialResponse"></div>
+    <div class="g_id_signin" data-type="standard"></div>
+
+    <h2>ID token</h2>
+    <textarea id="token" rows="8" readonly placeholder="Aparece acá después de iniciar sesión"></textarea>
+    <button id="copyButton" type="button">Copiar</button>
+
+    <h2>Payload decodificado (solo para verificar; no se envía a ningún lado)</h2>
+    <pre id="payload"></pre>
+
+    <script>
+      function handleCredentialResponse(response) {
+        const idToken = response.credential;
+        document.getElementById('token').value = idToken;
+        document.getElementById('payload').textContent = JSON.stringify(
+          decodeJwtPayload(idToken),
+          null,
+          2,
+        );
+      }
+
+      function decodeJwtPayload(token) {
+        const payloadBase64Url = token.split('.')[1];
+        const payloadBase64 = payloadBase64Url.replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(atob(payloadBase64));
+      }
+
+      document.getElementById('copyButton').addEventListener('click', () => {
+        const tokenField = document.getElementById('token');
+        void navigator.clipboard.writeText(tokenField.value);
+      });
+    </script>
+  </body>
+</html>
