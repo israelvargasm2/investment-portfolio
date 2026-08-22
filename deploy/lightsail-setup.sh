@@ -301,7 +301,11 @@ pm2 save
 
 # Deja el arranque de PM2 registrado como servicio systemd para que la API
 # vuelva a levantarse sola después de un reinicio de la instancia.
-STARTUP_CMD="$(pm2 startup systemd -u "$USER" --hp "$HOME" | tail -n 1)"
+# `pm2 startup` termina con exit code 1 a propósito (no configura nada solo,
+# solo imprime el comando `sudo ...` que hay que correr) — con `set -e` eso
+# cortaba el script acá mismo antes de llegar a la sección 7. El "|| true"
+# evita que ese código de salida "esperado" aborte todo.
+STARTUP_CMD="$(pm2 startup systemd -u "$USER" --hp "$HOME" | tail -n 1)" || true
 if [[ "$STARTUP_CMD" == sudo* ]]; then
   eval "$STARTUP_CMD"
 fi
@@ -335,8 +339,7 @@ if [ -n "$WEB_REPO_URL" ]; then
   # escribirlo a mano.
   GOOGLE_CLIENT_ID_VALUE="$(grep -E '^GOOGLE_CLIENT_ID=' "$APP_DIR/.env" 2>/dev/null | cut -d '=' -f2- || true)"
   if [ -n "$GOOGLE_CLIENT_ID_VALUE" ]; then
-    sed -i "s#TU_GOOGLE_CLIENT_ID\.apps\.googleusercontent\.com#${GOOGLE_CLIENT_ID_VALUE}#" \
-      "$WEB_APP_DIR/src/environments/environment.ts"
+    sed -i "s#TU_GOOGLE_CLIENT_ID\.apps\.googleusercontent\.com#${GOOGLE_CLIENT_ID_VALUE}#" "$WEB_APP_DIR/src/environments/environment.ts"
   else
     echo "!!! GOOGLE_CLIENT_ID vacío en $APP_DIR/.env — completalo ahí primero y volvé a correr este script."
     echo "    Mientras tanto el frontend se va a buildear con el placeholder: el login con Google no va a andar."
@@ -377,9 +380,7 @@ if [ -n "$DOMAIN" ]; then
       sudo apt-get install -y certbot python3-certbot-nginx
     fi
     echo "==> Pidiendo certificado HTTPS para ${DOMAIN}, www.${DOMAIN} y api.${DOMAIN}..."
-    if ! sudo certbot --nginx \
-      -d "$DOMAIN" -d "www.$DOMAIN" -d "api.$DOMAIN" \
-      --non-interactive --agree-tos -m "$CERTBOT_EMAIL" --redirect; then
+    if ! sudo certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" -d "api.$DOMAIN" --non-interactive --agree-tos -m "$CERTBOT_EMAIL" --redirect; then
       echo "!!! certbot falló — lo más probable es que el DNS todavía no haya propagado del todo."
       echo "    Esperá un rato y corré a mano: sudo certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} -d api.${DOMAIN}"
     fi
