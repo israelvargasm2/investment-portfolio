@@ -292,6 +292,20 @@ if [ ! -f "$APP_DIR/.env" ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# 5.5. Migraciones de base de datos
+# ---------------------------------------------------------------------------
+# Correr siempre (no solo la primera vez): así una tabla nueva agregada en
+# una versión posterior del código (ej. accounts) se crea sola en cada
+# re-deploy, sin tener que acordarse de correr esto a mano. TypeORM no
+# reaplica migraciones ya corridas (lleva registro en su propia tabla
+# "migrations"), así que repetir esto en cada corrida del script es seguro.
+echo "==> Corriendo migraciones de base de datos..."
+if ! npm run migration:run; then
+  echo "!!! Las migraciones fallaron — probablemente falta completar DATABASE_URL en $APP_DIR/.env todavía."
+  echo "    Completalo y corré a mano: cd $APP_DIR && npm run migration:run"
+fi
+
+# ---------------------------------------------------------------------------
 # 6. Levantar la API con PM2
 # ---------------------------------------------------------------------------
 

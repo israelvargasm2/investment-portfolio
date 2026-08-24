@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GetAssetPricesUseCase } from './application/get-asset-prices/get-asset-prices.use-case';
+import { GetExchangeRateUseCase } from './application/get-exchange-rate/get-exchange-rate.use-case';
 import { ListAssetOptionsUseCase } from './application/list-asset-options/list-asset-options.use-case';
 import { RefreshAssetOptionsUseCase } from './application/refresh-asset-options/refresh-asset-options.use-case';
 import { ASSET_OPTION_REPOSITORY } from './domain/ports/asset-option-repository.port';
@@ -10,6 +11,7 @@ import { CURRENCY_CONVERTER } from './domain/ports/currency-converter.port';
 import { STOCK_CATALOG_PROVIDER } from './domain/ports/stock-catalog-provider.port';
 import { STOCK_PRICE_PROVIDER } from './domain/ports/stock-price-provider.port';
 import { GetAssetPricesController } from './infrastructure/http/get-asset-prices.controller';
+import { GetExchangeRateController } from './infrastructure/http/get-exchange-rate.controller';
 import { ListAssetOptionsController } from './infrastructure/http/list-asset-options.controller';
 import { AssetOptionOrmEntity } from './infrastructure/persistence/typeorm/asset-option.orm-entity';
 import { TypeOrmAssetOptionRepository } from './infrastructure/persistence/typeorm/typeorm-asset-option.repository';
@@ -34,9 +36,14 @@ import { AssetOptionsRefreshScheduler } from './infrastructure/scheduling/asset-
  */
 @Module({
   imports: [TypeOrmModule.forFeature([AssetOptionOrmEntity])],
-  controllers: [GetAssetPricesController, ListAssetOptionsController],
+  controllers: [
+    GetAssetPricesController,
+    GetExchangeRateController,
+    ListAssetOptionsController,
+  ],
   providers: [
     GetAssetPricesUseCase,
+    GetExchangeRateUseCase,
     ListAssetOptionsUseCase,
     RefreshAssetOptionsUseCase,
     AssetOptionsRefreshScheduler,

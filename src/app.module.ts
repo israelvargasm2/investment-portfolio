@@ -3,7 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AccountsModule } from './accounts/accounts.module';
 import { AuthModule } from './auth/auth.module';
+import { BalanceSnapshotsModule } from './balance-snapshots/balance-snapshots.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import { HealthController } from './shared/infrastructure/http/health.controller';
 import { DatabaseModule } from './shared/infrastructure/persistence/typeorm/database.module';
@@ -31,6 +33,8 @@ const GLOBAL_THROTTLE_LIMIT = 100;
     AuthModule,
     WatchlistModule,
     PurchasesModule,
+    AccountsModule,
+    BalanceSnapshotsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
