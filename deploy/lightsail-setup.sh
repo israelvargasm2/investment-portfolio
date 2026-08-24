@@ -373,16 +373,22 @@ if [ -n "$DOMAIN" ]; then
     echo "!!! DOMAIN está seteado pero falta CERTBOT_EMAIL — no se pidió el certificado automáticamente."
     echo "    Completá CERTBOT_EMAIL arriba y volvé a correr este script, o corré a mano:"
     echo "      sudo apt-get install -y certbot python3-certbot-nginx"
-    echo "      sudo certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} -d api.${DOMAIN}"
+    echo "      sudo certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} -d api.${DOMAIN} --expand"
   else
     if ! command -v certbot >/dev/null 2>&1; then
       echo "==> Instalando certbot..."
       sudo apt-get install -y certbot python3-certbot-nginx
     fi
     echo "==> Pidiendo certificado HTTPS para ${DOMAIN}, www.${DOMAIN} y api.${DOMAIN}..."
-    if ! sudo certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" -d "api.$DOMAIN" --non-interactive --agree-tos -m "$CERTBOT_EMAIL" --redirect; then
-      echo "!!! certbot falló — lo más probable es que el DNS todavía no haya propagado del todo."
-      echo "    Esperá un rato y corré a mano: sudo certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} -d api.${DOMAIN}"
+    # --expand: si una corrida anterior ya generó un certificado para un
+    # subconjunto de estos hosts (ej. antes de que api.$DOMAIN resolviera en
+    # el DNS), certbot en modo no interactivo se niega a ampliarlo salvo que
+    # se lo pidas explícitamente — sin esto, cada corrida posterior que
+    # sume un host nuevo vuelve a fallar preguntando lo mismo.
+    if ! sudo certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" -d "api.$DOMAIN" --non-interactive --agree-tos -m "$CERTBOT_EMAIL" --redirect --expand; then
+      echo "!!! certbot falló — puede ser que el DNS todavía no haya propagado del todo, o algún otro"
+      echo "    conflicto. Mirá el detalle arriba y, si hace falta, corré a mano:"
+      echo "      sudo certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} -d api.${DOMAIN} --expand"
     fi
   fi
 fi
