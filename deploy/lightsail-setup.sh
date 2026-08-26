@@ -46,6 +46,11 @@
 
 set -euo pipefail
 
+# Sin esto, el primer `ng build`/`npm ci` del frontend pregunta interactivo
+# si querés mandar analytics a Google — corta el script esperando un input
+# que nunca llega si se corre sin terminal (ej. cron, CI).
+export NG_CLI_ANALYTICS=false
+
 # ---------------------------------------------------------------------------
 # Variables — ajustar antes de correr
 # ---------------------------------------------------------------------------
@@ -331,12 +336,6 @@ fi
 if [ -n "$WEB_REPO_URL" ]; then
   if [ -d "$WEB_APP_DIR/.git" ]; then
     echo "==> Repo del frontend ya existe, actualizando..."
-    # reset --hard antes de pull: si una corrida anterior de este script ya
-    # sustituyó el placeholder de GOOGLE_CLIENT_ID (ver abajo), ese cambio
-    # vive solo en este clon del servidor, nunca se commitea/pushea — pero
-    # git lo ve como una modificación local, y sin descartarla `git pull`
-    # puede fallar ("your local changes would be overwritten by merge").
-    git -C "$WEB_APP_DIR" reset --hard
     git -C "$WEB_APP_DIR" pull
   else
     echo "==> Clonando repo del frontend..."
@@ -346,17 +345,23 @@ if [ -n "$WEB_REPO_URL" ]; then
   # El Client ID de Google OAuth no es un secreto (está pensado para ir
   # embebido en cualquier frontend que use Sign In With Google — a
   # diferencia de JWT_SECRET/DATABASE_URL/etc., no necesita vivir en un
-  # .env), pero el placeholder que trae el repo (environment.ts) igual
-  # necesita el valor real antes de buildear. En vez de pedirlo dos veces,
+  # .env), pero igual no se commitea en el frontend: environment.ts importa
+  # el valor desde src/environments/google-client-id.ts, que está
+  # gitignorado (ver google-client-id.example.ts ahí para el porqué) — así
+  # que hay que generarlo acá, en cada build. En vez de pedirlo dos veces,
   # se reusa el GOOGLE_CLIENT_ID que ya completaste en $APP_DIR/.env (ver
   # sección 5) — mismo Client ID de los dos lados, un solo lugar donde
-  # escribirlo a mano.
+  # escribirlo a mano. Al no ser un archivo trackeado, esto nunca genera una
+  # modificación local que choque con el próximo `git pull`.
   GOOGLE_CLIENT_ID_VALUE="$(grep -E '^GOOGLE_CLIENT_ID=' "$APP_DIR/.env" 2>/dev/null | cut -d '=' -f2- || true)"
   if [ -n "$GOOGLE_CLIENT_ID_VALUE" ]; then
-    sed -i "s#TU_GOOGLE_CLIENT_ID\.apps\.googleusercontent\.com#${GOOGLE_CLIENT_ID_VALUE}#" "$WEB_APP_DIR/src/environments/environment.ts"
+    cat > "$WEB_APP_DIR/src/environments/google-client-id.ts" <<EOF
+export const GOOGLE_CLIENT_ID = '${GOOGLE_CLIENT_ID_VALUE}';
+EOF
   else
     echo "!!! GOOGLE_CLIENT_ID vacío en $APP_DIR/.env — completalo ahí primero y volvé a correr este script."
     echo "    Mientras tanto el frontend se va a buildear con el placeholder: el login con Google no va a andar."
+    cp "$WEB_APP_DIR/src/environments/google-client-id.example.ts" "$WEB_APP_DIR/src/environments/google-client-id.ts"
   fi
 
   echo "==> Instalando dependencias y compilando el frontend..."
