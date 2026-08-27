@@ -1,4 +1,5 @@
 import { Money } from '../../../shared/domain/value-objects/money.vo';
+import { AccountTerm } from '../account-term.enum';
 import { Account } from '../entities/account.entity';
 import { InstitutionType } from '../institution-type.enum';
 import { RateTier } from '../rate-tier';
@@ -9,6 +10,7 @@ export interface NewAccountData {
   institutionType: InstitutionType;
   balance: Money;
   rateTiers: RateTier[];
+  term: AccountTerm;
 }
 
 export interface AccountDetailsData {
@@ -16,6 +18,7 @@ export interface AccountDetailsData {
   institutionType: InstitutionType;
   balance: Money;
   rateTiers: RateTier[];
+  term: AccountTerm;
 }
 
 /**

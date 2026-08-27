@@ -9,6 +9,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { AccountTerm } from '../../../domain/account-term.enum';
 import { InstitutionType } from '../../../domain/institution-type.enum';
 import { RateTierDto } from './rate-tier.dto';
 
@@ -19,6 +20,9 @@ export class CreateAccountDto {
 
   @IsEnum(InstitutionType)
   institutionType: InstitutionType;
+
+  @IsEnum(AccountTerm)
+  term: AccountTerm;
 
   @Min(0)
   balanceAmount: number;

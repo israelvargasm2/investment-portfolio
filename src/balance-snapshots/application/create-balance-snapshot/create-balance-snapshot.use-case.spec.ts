@@ -1,4 +1,5 @@
 import { Account } from '../../../accounts/domain/entities/account.entity';
+import { AccountTerm } from '../../../accounts/domain/account-term.enum';
 import { InstitutionType } from '../../../accounts/domain/institution-type.enum';
 import type { AccountRepositoryPort } from '../../../accounts/domain/ports/account-repository.port';
 import type { CurrencyConverterPort } from '../../../market-data/domain/ports/currency-converter.port';
@@ -21,6 +22,7 @@ describe('CreateBalanceSnapshotUseCase', () => {
     InstitutionType.BANK,
     Money.of(1000, 'USD'),
     [{ upToAmount: null, annualRate: 5 }],
+    AccountTerm.LONG,
     new Date('2026-01-01T00:00:00.000Z'),
   );
   const mxnAccount = new Account(
@@ -30,6 +32,7 @@ describe('CreateBalanceSnapshotUseCase', () => {
     InstitutionType.SOFIPO,
     Money.of(5000, 'MXN'),
     [{ upToAmount: null, annualRate: 13 }],
+    AccountTerm.LONG,
     new Date('2026-01-01T00:00:00.000Z'),
   );
 

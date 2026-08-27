@@ -4,6 +4,7 @@ import { ListAccountsUseCase } from '../../application/list-accounts/list-accoun
 import { RemoveAccountUseCase } from '../../application/remove-account/remove-account.use-case';
 import { UpdateAccountUseCase } from '../../application/update-account/update-account.use-case';
 import { Account } from '../../domain/entities/account.entity';
+import { AccountTerm } from '../../domain/account-term.enum';
 import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
 import { InvalidRateTiersError } from '../../domain/errors/invalid-rate-tiers.error';
 import { InstitutionType } from '../../domain/institution-type.enum';
@@ -24,6 +25,7 @@ describe('AccountsController', () => {
     balanceAmount: 10000,
     currency: 'MXN',
     rateTiers: [{ upToAmount: null, annualRate: 8.5 }],
+    term: AccountTerm.LONG,
   };
 
   beforeEach(() => {
@@ -55,6 +57,7 @@ describe('AccountsController', () => {
       InstitutionType.BANK,
       Money.of(10000, 'MXN'),
       [{ upToAmount: null, annualRate: 8.5 }],
+      AccountTerm.LONG,
       new Date('2026-01-01T00:00:00.000Z'),
     );
     createAccount.execute.mockResolvedValue(account);
@@ -68,6 +71,7 @@ describe('AccountsController', () => {
       institutionType: InstitutionType.BANK,
       balance: Money.of(10000, 'MXN'),
       rateTiers: [{ upToAmount: null, annualRate: 8.5 }],
+      term: AccountTerm.LONG,
     });
     expect(response.id).toBe('account-1');
     expect(response.currency).toBe('MXN');
@@ -93,6 +97,7 @@ describe('AccountsController', () => {
       InstitutionType.BANK,
       Money.of(10000, 'MXN'),
       [{ upToAmount: null, annualRate: 8.5 }],
+      AccountTerm.LONG,
       new Date('2026-01-01T00:00:00.000Z'),
     );
     listAccounts.execute.mockResolvedValue([account]);
@@ -117,6 +122,7 @@ describe('AccountsController', () => {
       InstitutionType.SOFIPO,
       Money.of(30000, 'MXN'),
       tiers,
+      AccountTerm.LONG,
       new Date('2026-01-01T00:00:00.000Z'),
     );
     updateAccount.execute.mockResolvedValue(account);
@@ -135,6 +141,7 @@ describe('AccountsController', () => {
       institutionType: InstitutionType.SOFIPO,
       balance: Money.of(30000, 'MXN'),
       rateTiers: tiers,
+      term: AccountTerm.LONG,
     });
     expect(response.institutionName).toBe('Klar');
     // 25000*0.15 + 5000*0.06 = 3750 + 300 = 4050

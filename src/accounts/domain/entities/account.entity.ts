@@ -1,4 +1,5 @@
 import { Money } from '../../../shared/domain/value-objects/money.vo';
+import { AccountTerm } from '../account-term.enum';
 import { InstitutionType } from '../institution-type.enum';
 import {
   RateTier,
@@ -27,6 +28,7 @@ export class Account {
     public readonly institutionType: InstitutionType,
     public readonly balance: Money,
     public readonly rateTiers: RateTier[],
+    public readonly term: AccountTerm,
     public readonly createdAt: Date,
   ) {}
 

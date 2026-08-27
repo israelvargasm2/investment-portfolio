@@ -50,6 +50,7 @@ export class AccountsController {
         institutionType: dto.institutionType,
         balance: Money.of(dto.balanceAmount, dto.currency),
         rateTiers: dto.rateTiers,
+        term: dto.term,
       });
       return AccountResponseDto.fromDomain(account);
     } catch (error) {
@@ -80,6 +81,7 @@ export class AccountsController {
         institutionType: dto.institutionType,
         balance: Money.of(dto.balanceAmount, dto.currency),
         rateTiers: dto.rateTiers,
+        term: dto.term,
       });
       return AccountResponseDto.fromDomain(account);
     } catch (error) {

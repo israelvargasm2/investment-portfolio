@@ -4,6 +4,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { AccountTerm } from '../../../domain/account-term.enum';
 import { InstitutionType } from '../../../domain/institution-type.enum';
 import { RateTier } from '../../../domain/rate-tier';
 
@@ -39,6 +40,9 @@ export class AccountOrmEntity {
 
   @Column({ type: 'jsonb' })
   rateTiers: RateTier[];
+
+  @Column({ type: 'varchar' })
+  term: AccountTerm;
 
   @CreateDateColumn()
   createdAt: Date;

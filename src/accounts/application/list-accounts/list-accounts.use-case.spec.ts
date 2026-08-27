@@ -1,4 +1,5 @@
 import { Account } from '../../domain/entities/account.entity';
+import { AccountTerm } from '../../domain/account-term.enum';
 import { InstitutionType } from '../../domain/institution-type.enum';
 import type { AccountRepositoryPort } from '../../domain/ports/account-repository.port';
 import { Money } from '../../../shared/domain/value-objects/money.vo';
@@ -26,6 +27,7 @@ describe('ListAccountsUseCase', () => {
       InstitutionType.BANK,
       Money.of(10000, 'MXN'),
       [{ upToAmount: null, annualRate: 8.5 }],
+      AccountTerm.LONG,
       new Date('2026-01-01T00:00:00.000Z'),
     );
     accountRepository.findByUserId.mockResolvedValue([account]);

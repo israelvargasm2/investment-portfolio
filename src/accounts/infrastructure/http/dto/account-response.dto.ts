@@ -1,4 +1,5 @@
 import { Account } from '../../../domain/entities/account.entity';
+import { AccountTerm } from '../../../domain/account-term.enum';
 import { InstitutionType } from '../../../domain/institution-type.enum';
 import { RateTier } from '../../../domain/rate-tier';
 
@@ -13,6 +14,7 @@ export class AccountResponseDto {
   // Rendimiento total / balance, como un solo porcentaje "promedio" — útil
   // para mostrar una tabla sin tener que renderizar los tramos completos.
   effectiveAnnualRate: number;
+  term: AccountTerm;
   createdAt: string;
 
   static fromDomain(account: Account): AccountResponseDto {
@@ -25,6 +27,7 @@ export class AccountResponseDto {
     dto.rateTiers = account.rateTiers;
     dto.estimatedAnnualYield = account.estimatedAnnualYield;
     dto.effectiveAnnualRate = account.effectiveAnnualRate;
+    dto.term = account.term;
     dto.createdAt = account.createdAt.toISOString();
     return dto;
   }

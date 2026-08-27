@@ -36,6 +36,7 @@ export class TypeOrmAccountRepository implements AccountRepositoryPort {
       balanceAmount: newAccount.balance.amount,
       balanceCurrency: newAccount.balance.currency,
       rateTiers: newAccount.rateTiers,
+      term: newAccount.term,
     });
     const savedRow = await this.repository.save(row);
     return this.toDomain(savedRow);
@@ -54,6 +55,7 @@ export class TypeOrmAccountRepository implements AccountRepositoryPort {
         balanceAmount: data.balance.amount,
         balanceCurrency: data.balance.currency,
         rateTiers: data.rateTiers,
+        term: data.term,
       },
     );
     if ((result.affected ?? 0) === 0) {
@@ -77,6 +79,7 @@ export class TypeOrmAccountRepository implements AccountRepositoryPort {
       row.institutionType,
       Money.of(row.balanceAmount, row.balanceCurrency),
       row.rateTiers,
+      row.term,
       row.createdAt,
     );
   }

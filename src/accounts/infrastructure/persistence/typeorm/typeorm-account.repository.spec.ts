@@ -1,5 +1,6 @@
 import { Repository } from 'typeorm';
 import { Money } from '../../../../shared/domain/value-objects/money.vo';
+import { AccountTerm } from '../../../domain/account-term.enum';
 import { InstitutionType } from '../../../domain/institution-type.enum';
 import { RateTier } from '../../../domain/rate-tier';
 import { AccountOrmEntity } from './account.orm-entity';
@@ -19,6 +20,7 @@ describe('TypeOrmAccountRepository', () => {
     balanceAmount: 10000,
     balanceCurrency: 'MXN',
     rateTiers,
+    term: AccountTerm.LONG,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
   };
 
@@ -56,6 +58,7 @@ describe('TypeOrmAccountRepository', () => {
       institutionType: InstitutionType.BANK,
       balance: Money.of(10000, 'MXN'),
       rateTiers,
+      term: AccountTerm.LONG,
     });
 
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
@@ -66,6 +69,7 @@ describe('TypeOrmAccountRepository', () => {
       balanceAmount: 10000,
       balanceCurrency: 'MXN',
       rateTiers,
+      term: AccountTerm.LONG,
     });
     expect(result.id).toBe('account-1');
   });
@@ -94,6 +98,7 @@ describe('TypeOrmAccountRepository', () => {
         institutionType: InstitutionType.BANK,
         balance: Money.of(20000, 'MXN'),
         rateTiers: newTiers,
+        term: AccountTerm.LONG,
       },
     );
 
@@ -106,6 +111,7 @@ describe('TypeOrmAccountRepository', () => {
         balanceAmount: 20000,
         balanceCurrency: 'MXN',
         rateTiers: newTiers,
+        term: AccountTerm.LONG,
       },
     );
     expect(result?.balance.amount).toBe(20000);
@@ -127,6 +133,7 @@ describe('TypeOrmAccountRepository', () => {
         institutionType: InstitutionType.BANK,
         balance: Money.of(20000, 'MXN'),
         rateTiers,
+        term: AccountTerm.LONG,
       },
     );
 

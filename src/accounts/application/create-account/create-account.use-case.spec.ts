@@ -1,4 +1,5 @@
 import { Account } from '../../domain/entities/account.entity';
+import { AccountTerm } from '../../domain/account-term.enum';
 import { InvalidRateTiersError } from '../../domain/errors/invalid-rate-tiers.error';
 import { InstitutionType } from '../../domain/institution-type.enum';
 import type { AccountRepositoryPort } from '../../domain/ports/account-repository.port';
@@ -27,6 +28,7 @@ describe('CreateAccountUseCase', () => {
       InstitutionType.SOFIPO,
       Money.of(50000, 'MXN'),
       [{ upToAmount: null, annualRate: 15 }],
+      AccountTerm.MEDIUM,
       new Date('2026-01-01T00:00:00.000Z'),
     );
     accountRepository.create.mockResolvedValue(account);
@@ -37,6 +39,7 @@ describe('CreateAccountUseCase', () => {
       institutionType: InstitutionType.SOFIPO,
       balance: Money.of(50000, 'MXN'),
       rateTiers: [{ upToAmount: null, annualRate: 15 }],
+      term: AccountTerm.MEDIUM,
     });
 
     expect(result).toBe(account);
@@ -47,6 +50,7 @@ describe('CreateAccountUseCase', () => {
       institutionType: InstitutionType.SOFIPO,
       balance: Money.of(50000, 'MXN'),
       rateTiers: [{ upToAmount: null, annualRate: 15 }],
+      term: AccountTerm.MEDIUM,
     });
   });
 
@@ -58,6 +62,7 @@ describe('CreateAccountUseCase', () => {
         institutionType: InstitutionType.SOFIPO,
         balance: Money.of(50000, 'MXN'),
         rateTiers: [],
+        term: AccountTerm.MEDIUM,
       }),
     ).rejects.toThrow(InvalidRateTiersError);
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
