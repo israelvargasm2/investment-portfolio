@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccountsModule } from '../accounts/accounts.module';
 import { MarketDataModule } from '../market-data/market-data.module';
+import { PurchasesModule } from '../purchases/purchases.module';
 import { CreateBalanceSnapshotUseCase } from './application/create-balance-snapshot/create-balance-snapshot.use-case';
 import { ListBalanceSnapshotsUseCase } from './application/list-balance-snapshots/list-balance-snapshots.use-case';
 import { RemoveBalanceSnapshotUseCase } from './application/remove-balance-snapshot/remove-balance-snapshot.use-case';
@@ -12,16 +13,20 @@ import { TypeOrmBalanceSnapshotRepository } from './infrastructure/persistence/t
 
 /**
  * Módulo del contexto "balance-snapshots": guarda y lista fotos históricas
- * del total (suma de todas las cuentas del usuario, convertidas a una sola
- * moneda) — depende de AccountsModule (ACCOUNT_REPOSITORY, para leer las
- * cuentas a sumar) y de MarketDataModule (CURRENCY_CONVERTER, para
- * convertir las que no estén ya en la moneda pedida). Sus rutas quedan
- * protegidas por el guard JWT global (ver AuthModule).
+ * del total (suma de las cuentas del usuario + el valor actual de sus
+ * stocks/cripto, convertido a una sola moneda) — depende de AccountsModule
+ * (ACCOUNT_REPOSITORY, para leer las cuentas a sumar), de PurchasesModule
+ * (GetPurchasesPerformanceUseCase, para el valor de stocks/cripto — se
+ * consideran "largo plazo", ver CreateBalanceSnapshotUseCase) y de
+ * MarketDataModule (CURRENCY_CONVERTER, para convertir lo que no esté ya en
+ * la moneda pedida). Sus rutas quedan protegidas por el guard JWT global
+ * (ver AuthModule).
  */
 @Module({
   imports: [
     TypeOrmModule.forFeature([BalanceSnapshotOrmEntity]),
     AccountsModule,
+    PurchasesModule,
     MarketDataModule,
   ],
   controllers: [BalanceSnapshotsController],

@@ -26,5 +26,8 @@ import { TypeOrmPurchaseRepository } from './infrastructure/persistence/typeorm/
     RemovePurchaseUseCase,
     { provide: PURCHASE_REPOSITORY, useClass: TypeOrmPurchaseRepository },
   ],
+  // GetPurchasesPerformanceUseCase también lo usa BalanceSnapshotsModule
+  // (para incluir el valor de stocks/cripto en el total de largo plazo).
+  exports: [GetPurchasesPerformanceUseCase],
 })
 export class PurchasesModule {}

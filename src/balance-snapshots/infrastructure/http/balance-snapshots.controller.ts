@@ -40,11 +40,7 @@ export class BalanceSnapshotsController {
     @Body() dto: CreateBalanceSnapshotDto,
   ): Promise<BalanceSnapshotResponseDto> {
     try {
-      const snapshot = await this.createSnapshot.execute(
-        user.id,
-        dto.currency,
-        dto.scope,
-      );
+      const snapshot = await this.createSnapshot.execute(user.id, dto.currency);
       return BalanceSnapshotResponseDto.fromDomain(snapshot);
     } catch (error) {
       if (error instanceof BalanceSnapshotCalculationError) {

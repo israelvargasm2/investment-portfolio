@@ -5,20 +5,32 @@ import { ACCOUNT_REPOSITORY } from '../../../accounts/domain/ports/account-repos
 import type { AccountRepositoryPort } from '../../../accounts/domain/ports/account-repository.port';
 import { CURRENCY_CONVERTER } from '../../../market-data/domain/ports/currency-converter.port';
 import type { CurrencyConverterPort } from '../../../market-data/domain/ports/currency-converter.port';
+import { GetPurchasesPerformanceUseCase } from '../../../purchases/application/get-purchases-performance/get-purchases-performance.use-case';
+import { DISPLAY_CURRENCY as PURCHASES_CURRENCY } from '../../../purchases/application/get-purchases-performance/purchase-performance';
 import { Money } from '../../../shared/domain/value-objects/money.vo';
-import { BalanceSnapshotScope } from '../../domain/balance-snapshot-scope.enum';
 import { BalanceSnapshot } from '../../domain/entities/balance-snapshot.entity';
 import { BalanceSnapshotCalculationError } from '../../domain/errors/balance-snapshot-calculation.error';
 import { BALANCE_SNAPSHOT_REPOSITORY } from '../../domain/ports/balance-snapshot-repository.port';
 import type { BalanceSnapshotRepositoryPort } from '../../domain/ports/balance-snapshot-repository.port';
 
+interface AmountInCurrency {
+  amount: number;
+  currency: string;
+}
+
 /**
- * Caso de uso: guarda una "foto" del total actual de un subconjunto de
- * cuentas del usuario (`scope`, convertidas a una sola moneda) para armar un
- * histórico en el tiempo. El total se RECALCULA acá a partir de las cuentas
- * reales, no se recibe del cliente: así el número guardado siempre refleja
- * lo que el backend puede verificar, no lo que el frontend haya calculado (o
- * mal calculado con monedas mezcladas — CurrencyConverterPort convierte
+ * Caso de uso: guarda, en UN SOLO registro, una "foto" con el total actual
+ * del usuario y su desglose por plazo — total, largo+mediano plazo junto, y
+ * corto plazo — todo en una sola moneda, para armar un histórico en el
+ * tiempo con un solo click en "Guardar total actual" (antes guardaba tres
+ * filas sueltas, una por subconjunto; ver el comentario en la entidad).
+ * Stocks/cripto se consideran "largo plazo" (mismo criterio que
+ * holding-accounts.ts del frontend, que arma las filas "Stocks"/"Crypto" de
+ * la tabla), así que van dentro del monto de largo+mediano, nunca en el de
+ * corto plazo. El total se RECALCULA acá a partir de datos reales, no se
+ * recibe del cliente: así el número guardado siempre refleja lo que el
+ * backend puede verificar, no lo que el frontend haya calculado (o mal
+ * calculado con monedas mezcladas — CurrencyConverterPort convierte
  * cualquier par que soporte Frankfurter, no solo USD/MXN).
  */
 @Injectable()
@@ -26,55 +38,72 @@ export class CreateBalanceSnapshotUseCase {
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepository: AccountRepositoryPort,
+    private readonly getPurchasesPerformance: GetPurchasesPerformanceUseCase,
     @Inject(CURRENCY_CONVERTER)
     private readonly currencyConverter: CurrencyConverterPort,
     @Inject(BALANCE_SNAPSHOT_REPOSITORY)
     private readonly snapshotRepository: BalanceSnapshotRepositoryPort,
   ) {}
 
-  async execute(
-    userId: string,
-    currency: string,
-    scope: BalanceSnapshotScope,
-  ): Promise<BalanceSnapshot> {
+  async execute(userId: string, currency: string): Promise<BalanceSnapshot> {
     const targetCurrency = currency.toUpperCase();
     const accounts = await this.accountRepository.findByUserId(userId);
-    const scopedAccounts = this.filterByScope(accounts, scope);
-    const totalAmount = await this.computeTotal(scopedAccounts, targetCurrency);
+    const shortAccounts = accounts.filter(
+      (account) => account.term === AccountTerm.SHORT,
+    );
+    const longMediumAccounts = accounts.filter(
+      (account) => account.term !== AccountTerm.SHORT,
+    );
+    const holdingsAmount = await this.computeHoldingsAmount(userId);
+
+    const [shortTotal, longMediumTotal] = await Promise.all([
+      this.computeTotal(this.toAmounts(shortAccounts), targetCurrency),
+      this.computeTotal(
+        [
+          ...this.toAmounts(longMediumAccounts),
+          { amount: holdingsAmount, currency: PURCHASES_CURRENCY },
+        ],
+        targetCurrency,
+      ),
+    ]);
 
     return this.snapshotRepository.create({
       userId,
-      total: Money.of(totalAmount, targetCurrency),
-      scope,
+      totalAmount: Money.of(shortTotal + longMediumTotal, targetCurrency),
+      longMediumTermAmount: Money.of(longMediumTotal, targetCurrency),
+      shortTermAmount: Money.of(shortTotal, targetCurrency),
     });
   }
 
-  // "Largo y mediano plazo" es un solo grupo (a propósito, ver el pedido
-  // original): todo lo que no sea corto plazo/liquidez.
-  private filterByScope(
-    accounts: Account[],
-    scope: BalanceSnapshotScope,
-  ): Account[] {
-    if (scope === BalanceSnapshotScope.SHORT) {
-      return accounts.filter((account) => account.term === AccountTerm.SHORT);
-    }
-    if (scope === BalanceSnapshotScope.LONG_MEDIUM) {
-      return accounts.filter((account) => account.term !== AccountTerm.SHORT);
-    }
-    return accounts;
+  private toAmounts(accounts: Account[]): AmountInCurrency[] {
+    return accounts.map((account) => ({
+      amount: account.balance.amount,
+      currency: account.balance.currency,
+    }));
+  }
+
+  // GetPurchasesPerformanceUseCase ya devuelve currentValue en
+  // PURCHASES_CURRENCY (USD) para stocks y cripto por igual — acá solo se
+  // suman, la conversión a la moneda pedida pasa después, en computeTotal.
+  private async computeHoldingsAmount(userId: string): Promise<number> {
+    const { performances } = await this.getPurchasesPerformance.execute(userId);
+    return performances.reduce(
+      (sum, performance) => sum + performance.currentValue,
+      0,
+    );
   }
 
   private async computeTotal(
-    accounts: Account[],
+    amounts: AmountInCurrency[],
     targetCurrency: string,
   ): Promise<number> {
     try {
-      const amounts = await Promise.all(
-        accounts.map((account) =>
-          this.convertToTarget(account, targetCurrency),
+      const converted = await Promise.all(
+        amounts.map((entry) =>
+          this.convertToTarget(entry.amount, entry.currency, targetCurrency),
         ),
       );
-      return amounts.reduce((sum, amount) => sum + amount, 0);
+      return converted.reduce((sum, amount) => sum + amount, 0);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       throw new BalanceSnapshotCalculationError(
@@ -84,15 +113,16 @@ export class CreateBalanceSnapshotUseCase {
   }
 
   private async convertToTarget(
-    account: Account,
+    amount: number,
+    sourceCurrency: string,
     targetCurrency: string,
   ): Promise<number> {
-    if (account.balance.currency === targetCurrency) {
-      return account.balance.amount;
+    if (sourceCurrency === targetCurrency) {
+      return amount;
     }
     return this.currencyConverter.convert(
-      account.balance.amount,
-      account.balance.currency,
+      amount,
+      sourceCurrency,
       targetCurrency,
     );
   }

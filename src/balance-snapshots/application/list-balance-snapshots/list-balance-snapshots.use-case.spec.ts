@@ -1,4 +1,3 @@
-import { BalanceSnapshotScope } from '../../domain/balance-snapshot-scope.enum';
 import { BalanceSnapshot } from '../../domain/entities/balance-snapshot.entity';
 import type { BalanceSnapshotRepositoryPort } from '../../domain/ports/balance-snapshot-repository.port';
 import { Money } from '../../../shared/domain/value-objects/money.vo';
@@ -22,7 +21,8 @@ describe('ListBalanceSnapshotsUseCase', () => {
       'snap-1',
       'user-1',
       Money.of(1000, 'USD'),
-      BalanceSnapshotScope.ALL,
+      Money.of(1000, 'USD'),
+      Money.of(0, 'USD'),
       new Date('2026-01-01T00:00:00.000Z'),
     );
     snapshotRepository.findByUserId.mockResolvedValue([snapshot]);

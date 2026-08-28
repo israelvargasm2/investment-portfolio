@@ -1,11 +1,11 @@
 import { Money } from '../../../shared/domain/value-objects/money.vo';
-import { BalanceSnapshotScope } from '../balance-snapshot-scope.enum';
 import { BalanceSnapshot } from '../entities/balance-snapshot.entity';
 
 export interface NewBalanceSnapshotData {
   userId: string;
-  total: Money;
-  scope: BalanceSnapshotScope;
+  totalAmount: Money;
+  longMediumTermAmount: Money;
+  shortTermAmount: Money;
 }
 
 /**

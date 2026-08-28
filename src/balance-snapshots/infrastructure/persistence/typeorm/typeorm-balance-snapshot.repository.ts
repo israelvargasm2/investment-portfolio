@@ -34,9 +34,12 @@ export class TypeOrmBalanceSnapshotRepository implements BalanceSnapshotReposito
   async create(data: NewBalanceSnapshotData): Promise<BalanceSnapshot> {
     const row = this.repository.create({
       userId: data.userId,
-      totalAmount: data.total.amount,
-      currency: data.total.currency,
-      scope: data.scope,
+      totalAmount: data.totalAmount.amount,
+      longMediumTermAmount: data.longMediumTermAmount.amount,
+      shortTermAmount: data.shortTermAmount.amount,
+      // Los tres montos se calculan juntos para la misma moneda pedida —
+      // alcanza con guardarla una vez.
+      currency: data.totalAmount.currency,
     });
     const savedRow = await this.repository.save(row);
     return this.toDomain(savedRow);
@@ -52,7 +55,8 @@ export class TypeOrmBalanceSnapshotRepository implements BalanceSnapshotReposito
       row.id,
       row.userId,
       Money.of(row.totalAmount, row.currency),
-      row.scope,
+      Money.of(row.longMediumTermAmount, row.currency),
+      Money.of(row.shortTermAmount, row.currency),
       row.createdAt,
     );
   }

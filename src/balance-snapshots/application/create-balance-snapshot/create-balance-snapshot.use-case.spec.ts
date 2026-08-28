@@ -3,8 +3,11 @@ import { AccountTerm } from '../../../accounts/domain/account-term.enum';
 import { InstitutionType } from '../../../accounts/domain/institution-type.enum';
 import type { AccountRepositoryPort } from '../../../accounts/domain/ports/account-repository.port';
 import type { CurrencyConverterPort } from '../../../market-data/domain/ports/currency-converter.port';
+import { GetPurchasesPerformanceUseCase } from '../../../purchases/application/get-purchases-performance/get-purchases-performance.use-case';
+import { PurchasePerformance } from '../../../purchases/application/get-purchases-performance/purchase-performance';
+import { Purchase } from '../../../purchases/domain/entities/purchase.entity';
+import { PurchaseAssetType } from '../../../purchases/domain/purchase-asset-type.enum';
 import { Money } from '../../../shared/domain/value-objects/money.vo';
-import { BalanceSnapshotScope } from '../../domain/balance-snapshot-scope.enum';
 import { BalanceSnapshot } from '../../domain/entities/balance-snapshot.entity';
 import { BalanceSnapshotCalculationError } from '../../domain/errors/balance-snapshot-calculation.error';
 import type { BalanceSnapshotRepositoryPort } from '../../domain/ports/balance-snapshot-repository.port';
@@ -12,11 +15,12 @@ import { CreateBalanceSnapshotUseCase } from './create-balance-snapshot.use-case
 
 describe('CreateBalanceSnapshotUseCase', () => {
   let accountRepository: jest.Mocked<AccountRepositoryPort>;
+  let getPurchasesPerformance: jest.Mocked<GetPurchasesPerformanceUseCase>;
   let currencyConverter: jest.Mocked<CurrencyConverterPort>;
   let snapshotRepository: jest.Mocked<BalanceSnapshotRepositoryPort>;
   let useCase: CreateBalanceSnapshotUseCase;
 
-  const usdAccount = new Account(
+  const longAccount = new Account(
     'account-1',
     'user-1',
     'BBVA',
@@ -26,8 +30,28 @@ describe('CreateBalanceSnapshotUseCase', () => {
     AccountTerm.LONG,
     new Date('2026-01-01T00:00:00.000Z'),
   );
-  const mxnAccount = new Account(
+  const mediumAccount = new Account(
     'account-2',
+    'user-1',
+    'Klar plazo fijo',
+    InstitutionType.SOFIPO,
+    Money.of(500, 'USD'),
+    [{ upToAmount: null, annualRate: 10 }],
+    AccountTerm.MEDIUM,
+    new Date('2026-01-01T00:00:00.000Z'),
+  );
+  const shortAccount = new Account(
+    'account-3',
+    'user-1',
+    'Cuenta de ahorro',
+    InstitutionType.BANK,
+    Money.of(2000, 'USD'),
+    [{ upToAmount: null, annualRate: 0 }],
+    AccountTerm.SHORT,
+    new Date('2026-01-01T00:00:00.000Z'),
+  );
+  const mxnAccount = new Account(
+    'account-4',
     'user-1',
     'Klar',
     InstitutionType.SOFIPO,
@@ -37,6 +61,29 @@ describe('CreateBalanceSnapshotUseCase', () => {
     new Date('2026-01-01T00:00:00.000Z'),
   );
 
+  function buildPerformance(
+    currentValue: number,
+    assetType: PurchaseAssetType,
+  ): PurchasePerformance {
+    return {
+      purchase: new Purchase(
+        'purchase-1',
+        'user-1',
+        assetType === PurchaseAssetType.STOCK ? 'AAPL' : 'bitcoin',
+        assetType,
+        1,
+        Money.of(1000, 'USD'),
+        new Date('2026-01-01T00:00:00.000Z'),
+        new Date('2026-01-01T00:00:00.000Z'),
+      ),
+      investedAmountUsd: 1000,
+      currentPrice: Money.of(currentValue, 'USD'),
+      currentValue,
+      gainLoss: currentValue - 1000,
+      gainLossPercentage: 0,
+    };
+  }
+
   beforeEach(() => {
     accountRepository = {
       findByUserId: jest.fn(),
@@ -44,6 +91,9 @@ describe('CreateBalanceSnapshotUseCase', () => {
       updateByIdAndUserId: jest.fn(),
       deleteByIdAndUserId: jest.fn(),
     };
+    getPurchasesPerformance = {
+      execute: jest.fn().mockResolvedValue({ performances: [], errors: [] }),
+    } as unknown as jest.Mocked<GetPurchasesPerformanceUseCase>;
     currencyConverter = { convert: jest.fn() };
     snapshotRepository = {
       findByUserId: jest.fn(),
@@ -52,27 +102,29 @@ describe('CreateBalanceSnapshotUseCase', () => {
     };
     useCase = new CreateBalanceSnapshotUseCase(
       accountRepository,
+      getPurchasesPerformance,
       currencyConverter,
       snapshotRepository,
     );
   });
 
-  it('suma las cuentas ya en la moneda destino sin convertir', async () => {
-    accountRepository.findByUserId.mockResolvedValue([usdAccount]);
+  it('guarda un solo registro con total, largo+mediano y corto plazo separados', async () => {
+    accountRepository.findByUserId.mockResolvedValue([
+      longAccount,
+      mediumAccount,
+      shortAccount,
+    ]);
     const snapshot = new BalanceSnapshot(
       'snap-1',
       'user-1',
-      Money.of(1000, 'USD'),
-      BalanceSnapshotScope.ALL,
+      Money.of(3500, 'USD'),
+      Money.of(1500, 'USD'),
+      Money.of(2000, 'USD'),
       new Date(),
     );
     snapshotRepository.create.mockResolvedValue(snapshot);
 
-    const result = await useCase.execute(
-      'user-1',
-      'usd',
-      BalanceSnapshotScope.ALL,
-    );
+    const result = await useCase.execute('user-1', 'usd');
 
     expect(result).toBe(snapshot);
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
@@ -80,55 +132,60 @@ describe('CreateBalanceSnapshotUseCase', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
     expect(snapshotRepository.create).toHaveBeenCalledWith({
       userId: 'user-1',
-      total: Money.of(1000, 'USD'),
-      scope: BalanceSnapshotScope.ALL,
+      totalAmount: Money.of(3500, 'USD'), // 1000 (long) + 500 (medium) + 2000 (short)
+      longMediumTermAmount: Money.of(1500, 'USD'),
+      shortTermAmount: Money.of(2000, 'USD'),
     });
   });
 
-  it('convierte cada cuenta que no está en la moneda destino y suma todo', async () => {
-    accountRepository.findByUserId.mockResolvedValue([usdAccount, mxnAccount]);
+  it('convierte cuentas en otra moneda antes de sumarlas', async () => {
+    accountRepository.findByUserId.mockResolvedValue([longAccount, mxnAccount]);
     currencyConverter.convert.mockResolvedValue(270); // 5000 MXN -> 270 USD
     snapshotRepository.create.mockResolvedValue(
       new BalanceSnapshot(
         'snap-1',
         'user-1',
         Money.of(1270, 'USD'),
-        BalanceSnapshotScope.ALL,
+        Money.of(1270, 'USD'),
+        Money.of(0, 'USD'),
         new Date(),
       ),
     );
 
-    await useCase.execute('user-1', 'USD', BalanceSnapshotScope.ALL);
+    await useCase.execute('user-1', 'USD');
 
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
     expect(currencyConverter.convert).toHaveBeenCalledWith(5000, 'MXN', 'USD');
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
     expect(snapshotRepository.create).toHaveBeenCalledWith({
       userId: 'user-1',
-      total: Money.of(1270, 'USD'),
-      scope: BalanceSnapshotScope.ALL,
+      totalAmount: Money.of(1270, 'USD'),
+      longMediumTermAmount: Money.of(1270, 'USD'),
+      shortTermAmount: Money.of(0, 'USD'),
     });
   });
 
-  it('guarda 0 si el usuario todavía no tiene cuentas', async () => {
+  it('guarda todo en 0 si el usuario no tiene cuentas ni compras', async () => {
     accountRepository.findByUserId.mockResolvedValue([]);
     snapshotRepository.create.mockResolvedValue(
       new BalanceSnapshot(
         'snap-1',
         'user-1',
         Money.of(0, 'USD'),
-        BalanceSnapshotScope.ALL,
+        Money.of(0, 'USD'),
+        Money.of(0, 'USD'),
         new Date(),
       ),
     );
 
-    await useCase.execute('user-1', 'USD', BalanceSnapshotScope.ALL);
+    await useCase.execute('user-1', 'USD');
 
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
     expect(snapshotRepository.create).toHaveBeenCalledWith({
       userId: 'user-1',
-      total: Money.of(0, 'USD'),
-      scope: BalanceSnapshotScope.ALL,
+      totalAmount: Money.of(0, 'USD'),
+      longMediumTermAmount: Money.of(0, 'USD'),
+      shortTermAmount: Money.of(0, 'USD'),
     });
   });
 
@@ -136,91 +193,73 @@ describe('CreateBalanceSnapshotUseCase', () => {
     accountRepository.findByUserId.mockResolvedValue([mxnAccount]);
     currencyConverter.convert.mockRejectedValue(new Error('Frankfurter down'));
 
-    await expect(
-      useCase.execute('user-1', 'USD', BalanceSnapshotScope.ALL),
-    ).rejects.toThrow(BalanceSnapshotCalculationError);
+    await expect(useCase.execute('user-1', 'USD')).rejects.toThrow(
+      BalanceSnapshotCalculationError,
+    );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
     expect(snapshotRepository.create).not.toHaveBeenCalled();
   });
 
-  it('con scope SHORT, solo suma las cuentas de corto plazo', async () => {
-    const shortAccount = new Account(
-      'account-3',
-      'user-1',
-      'Cuenta de ahorro',
-      InstitutionType.BANK,
-      Money.of(2000, 'USD'),
-      [{ upToAmount: null, annualRate: 0 }],
-      AccountTerm.SHORT,
-      new Date('2026-01-01T00:00:00.000Z'),
-    );
-    accountRepository.findByUserId.mockResolvedValue([
-      usdAccount,
-      shortAccount,
-    ]); // usdAccount es LONG
+  it('incluye el valor actual de stocks y cripto dentro del monto de largo+mediano plazo', async () => {
+    accountRepository.findByUserId.mockResolvedValue([shortAccount]);
+    getPurchasesPerformance.execute.mockResolvedValue({
+      performances: [
+        buildPerformance(500, PurchaseAssetType.STOCK),
+        buildPerformance(300, PurchaseAssetType.CRYPTO),
+      ],
+      errors: [],
+    });
     snapshotRepository.create.mockResolvedValue(
       new BalanceSnapshot(
         'snap-1',
         'user-1',
+        Money.of(2800, 'USD'),
+        Money.of(800, 'USD'),
         Money.of(2000, 'USD'),
-        BalanceSnapshotScope.SHORT,
         new Date(),
       ),
     );
 
-    await useCase.execute('user-1', 'USD', BalanceSnapshotScope.SHORT);
+    await useCase.execute('user-1', 'USD');
 
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
     expect(snapshotRepository.create).toHaveBeenCalledWith({
       userId: 'user-1',
-      total: Money.of(2000, 'USD'),
-      scope: BalanceSnapshotScope.SHORT,
+      // shortTerm: 2000 (shortAccount). longMedium: 500 (stock) + 300 (cripto), sin cuentas de ese plazo.
+      totalAmount: Money.of(2800, 'USD'),
+      longMediumTermAmount: Money.of(800, 'USD'),
+      shortTermAmount: Money.of(2000, 'USD'),
     });
   });
 
-  it('con scope LONG_MEDIUM, suma largo y mediano juntos, sin las de corto plazo', async () => {
-    const mediumAccount = new Account(
-      'account-3',
-      'user-1',
-      'Klar plazo fijo',
-      InstitutionType.SOFIPO,
-      Money.of(500, 'USD'),
-      [{ upToAmount: null, annualRate: 10 }],
-      AccountTerm.MEDIUM,
-      new Date('2026-01-01T00:00:00.000Z'),
-    );
-    const shortAccount = new Account(
-      'account-4',
-      'user-1',
-      'Cuenta de ahorro',
-      InstitutionType.BANK,
-      Money.of(2000, 'USD'),
-      [{ upToAmount: null, annualRate: 0 }],
-      AccountTerm.SHORT,
-      new Date('2026-01-01T00:00:00.000Z'),
-    );
-    accountRepository.findByUserId.mockResolvedValue([
-      usdAccount,
-      mediumAccount,
-      shortAccount,
-    ]); // usdAccount es LONG
+  it('convierte el valor de stocks/cripto a la moneda pedida', async () => {
+    accountRepository.findByUserId.mockResolvedValue([]);
+    getPurchasesPerformance.execute.mockResolvedValue({
+      performances: [buildPerformance(100, PurchaseAssetType.STOCK)],
+      errors: [],
+    });
+    currencyConverter.convert.mockResolvedValue(1850); // 100 USD -> 1850 MXN
     snapshotRepository.create.mockResolvedValue(
       new BalanceSnapshot(
         'snap-1',
         'user-1',
-        Money.of(1500, 'USD'),
-        BalanceSnapshotScope.LONG_MEDIUM,
+        Money.of(1850, 'MXN'),
+        Money.of(1850, 'MXN'),
+        Money.of(0, 'MXN'),
         new Date(),
       ),
     );
 
-    await useCase.execute('user-1', 'USD', BalanceSnapshotScope.LONG_MEDIUM);
+    await useCase.execute('user-1', 'MXN');
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
+    expect(currencyConverter.convert).toHaveBeenCalledWith(100, 'USD', 'MXN');
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
     expect(snapshotRepository.create).toHaveBeenCalledWith({
       userId: 'user-1',
-      total: Money.of(1500, 'USD'), // 1000 (long) + 500 (medium), sin las 2000 de short
-      scope: BalanceSnapshotScope.LONG_MEDIUM,
+      totalAmount: Money.of(1850, 'MXN'),
+      longMediumTermAmount: Money.of(1850, 'MXN'),
+      shortTermAmount: Money.of(0, 'MXN'),
     });
   });
 });

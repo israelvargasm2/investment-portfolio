@@ -4,7 +4,6 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { BalanceSnapshotScope } from '../../../domain/balance-snapshot-scope.enum';
 
 /**
  * Modelo de fila de TypeORM para "balance_snapshots". Sin relación
@@ -22,11 +21,16 @@ export class BalanceSnapshotOrmEntity {
   @Column({ type: 'double precision' })
   totalAmount: number;
 
+  @Column({ type: 'double precision' })
+  longMediumTermAmount: number;
+
+  @Column({ type: 'double precision' })
+  shortTermAmount: number;
+
+  // Los tres montos de arriba comparten esta única moneda (se calculan
+  // juntos, en un solo pedido, para la misma moneda de visualización).
   @Column({ type: 'varchar' })
   currency: string;
-
-  @Column({ type: 'varchar' })
-  scope: BalanceSnapshotScope;
 
   @CreateDateColumn()
   createdAt: Date;

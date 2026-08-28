@@ -1,6 +1,5 @@
 import { Repository } from 'typeorm';
 import { Money } from '../../../../shared/domain/value-objects/money.vo';
-import { BalanceSnapshotScope } from '../../../domain/balance-snapshot-scope.enum';
 import { BalanceSnapshotOrmEntity } from './balance-snapshot.orm-entity';
 import { TypeOrmBalanceSnapshotRepository } from './typeorm-balance-snapshot.repository';
 
@@ -12,8 +11,9 @@ describe('TypeOrmBalanceSnapshotRepository', () => {
     id: 'snap-1',
     userId: 'user-1',
     totalAmount: 1500,
+    longMediumTermAmount: 1000,
+    shortTermAmount: 500,
     currency: 'USD',
-    scope: BalanceSnapshotScope.ALL,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
   };
 
@@ -33,8 +33,10 @@ describe('TypeOrmBalanceSnapshotRepository', () => {
     const result = await snapshotRepository.findByUserId('user-1');
 
     expect(result).toHaveLength(1);
-    expect(result[0].total.amount).toBe(1500);
-    expect(result[0].total.currency).toBe('USD');
+    expect(result[0].totalAmount.amount).toBe(1500);
+    expect(result[0].totalAmount.currency).toBe('USD');
+    expect(result[0].longMediumTermAmount.amount).toBe(1000);
+    expect(result[0].shortTermAmount.amount).toBe(500);
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
     expect(repository.find).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
@@ -42,22 +44,24 @@ describe('TypeOrmBalanceSnapshotRepository', () => {
     });
   });
 
-  it('crea y guarda una foto nueva, separando el Money en dos columnas', async () => {
+  it('crea y guarda una foto nueva, separando los tres montos y la moneda en columnas', async () => {
     repository.create.mockReturnValue(row);
     repository.save.mockResolvedValue(row);
 
     const result = await snapshotRepository.create({
       userId: 'user-1',
-      total: Money.of(1500, 'USD'),
-      scope: BalanceSnapshotScope.ALL,
+      totalAmount: Money.of(1500, 'USD'),
+      longMediumTermAmount: Money.of(1000, 'USD'),
+      shortTermAmount: Money.of(500, 'USD'),
     });
 
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
     expect(repository.create).toHaveBeenCalledWith({
       userId: 'user-1',
       totalAmount: 1500,
+      longMediumTermAmount: 1000,
+      shortTermAmount: 500,
       currency: 'USD',
-      scope: BalanceSnapshotScope.ALL,
     });
     expect(result.id).toBe('snap-1');
   });
