@@ -2,6 +2,7 @@ import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { CreateBalanceSnapshotUseCase } from '../../application/create-balance-snapshot/create-balance-snapshot.use-case';
 import { ListBalanceSnapshotsUseCase } from '../../application/list-balance-snapshots/list-balance-snapshots.use-case';
 import { RemoveBalanceSnapshotUseCase } from '../../application/remove-balance-snapshot/remove-balance-snapshot.use-case';
+import { BalanceSnapshotScope } from '../../domain/balance-snapshot-scope.enum';
 import { BalanceSnapshot } from '../../domain/entities/balance-snapshot.entity';
 import { BalanceSnapshotCalculationError } from '../../domain/errors/balance-snapshot-calculation.error';
 import { BalanceSnapshotNotFoundError } from '../../domain/errors/balance-snapshot-not-found.error';
@@ -38,16 +39,25 @@ describe('BalanceSnapshotsController', () => {
       'snap-1',
       'user-1',
       Money.of(1500, 'USD'),
+      BalanceSnapshotScope.ALL,
       new Date('2026-01-01T00:00:00.000Z'),
     );
     createSnapshot.execute.mockResolvedValue(snapshot);
 
-    const response = await controller.create(currentUser, { currency: 'USD' });
+    const response = await controller.create(currentUser, {
+      currency: 'USD',
+      scope: BalanceSnapshotScope.ALL,
+    });
 
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
-    expect(createSnapshot.execute).toHaveBeenCalledWith('user-1', 'USD');
+    expect(createSnapshot.execute).toHaveBeenCalledWith(
+      'user-1',
+      'USD',
+      BalanceSnapshotScope.ALL,
+    );
     expect(response.id).toBe('snap-1');
     expect(response.totalAmount).toBe(1500);
+    expect(response.scope).toBe(BalanceSnapshotScope.ALL);
   });
 
   it('traduce BalanceSnapshotCalculationError a ServiceUnavailableException (503)', async () => {
@@ -56,7 +66,10 @@ describe('BalanceSnapshotsController', () => {
     );
 
     await expect(
-      controller.create(currentUser, { currency: 'USD' }),
+      controller.create(currentUser, {
+        currency: 'USD',
+        scope: BalanceSnapshotScope.ALL,
+      }),
     ).rejects.toThrow(ServiceUnavailableException);
   });
 
@@ -65,6 +78,7 @@ describe('BalanceSnapshotsController', () => {
       'snap-1',
       'user-1',
       Money.of(1500, 'USD'),
+      BalanceSnapshotScope.ALL,
       new Date('2026-01-01T00:00:00.000Z'),
     );
     listSnapshots.execute.mockResolvedValue([snapshot]);

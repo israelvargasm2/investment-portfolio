@@ -1,5 +1,6 @@
 import { Repository } from 'typeorm';
 import { Money } from '../../../../shared/domain/value-objects/money.vo';
+import { BalanceSnapshotScope } from '../../../domain/balance-snapshot-scope.enum';
 import { BalanceSnapshotOrmEntity } from './balance-snapshot.orm-entity';
 import { TypeOrmBalanceSnapshotRepository } from './typeorm-balance-snapshot.repository';
 
@@ -12,6 +13,7 @@ describe('TypeOrmBalanceSnapshotRepository', () => {
     userId: 'user-1',
     totalAmount: 1500,
     currency: 'USD',
+    scope: BalanceSnapshotScope.ALL,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
   };
 
@@ -47,6 +49,7 @@ describe('TypeOrmBalanceSnapshotRepository', () => {
     const result = await snapshotRepository.create({
       userId: 'user-1',
       total: Money.of(1500, 'USD'),
+      scope: BalanceSnapshotScope.ALL,
     });
 
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
@@ -54,6 +57,7 @@ describe('TypeOrmBalanceSnapshotRepository', () => {
       userId: 'user-1',
       totalAmount: 1500,
       currency: 'USD',
+      scope: BalanceSnapshotScope.ALL,
     });
     expect(result.id).toBe('snap-1');
   });

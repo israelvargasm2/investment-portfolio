@@ -4,6 +4,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { BalanceSnapshotScope } from '../../../domain/balance-snapshot-scope.enum';
 
 /**
  * Modelo de fila de TypeORM para "balance_snapshots". Sin relación
@@ -23,6 +24,9 @@ export class BalanceSnapshotOrmEntity {
 
   @Column({ type: 'varchar' })
   currency: string;
+
+  @Column({ type: 'varchar' })
+  scope: BalanceSnapshotScope;
 
   @CreateDateColumn()
   createdAt: Date;

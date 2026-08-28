@@ -1,22 +1,24 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Account } from '../../../accounts/domain/entities/account.entity';
+import { AccountTerm } from '../../../accounts/domain/account-term.enum';
 import { ACCOUNT_REPOSITORY } from '../../../accounts/domain/ports/account-repository.port';
 import type { AccountRepositoryPort } from '../../../accounts/domain/ports/account-repository.port';
 import { CURRENCY_CONVERTER } from '../../../market-data/domain/ports/currency-converter.port';
 import type { CurrencyConverterPort } from '../../../market-data/domain/ports/currency-converter.port';
 import { Money } from '../../../shared/domain/value-objects/money.vo';
+import { BalanceSnapshotScope } from '../../domain/balance-snapshot-scope.enum';
 import { BalanceSnapshot } from '../../domain/entities/balance-snapshot.entity';
 import { BalanceSnapshotCalculationError } from '../../domain/errors/balance-snapshot-calculation.error';
 import { BALANCE_SNAPSHOT_REPOSITORY } from '../../domain/ports/balance-snapshot-repository.port';
 import type { BalanceSnapshotRepositoryPort } from '../../domain/ports/balance-snapshot-repository.port';
 
 /**
- * Caso de uso: guarda una "foto" del total actual (suma de todas las cuentas
- * del usuario, convertidas a una sola moneda) para armar un histórico en el
- * tiempo. El total se RECALCULA acá a partir de las cuentas reales, no se
- * recibe del cliente: así el número guardado siempre refleja lo que el
- * backend puede verificar, no lo que el frontend haya calculado (o mal
- * calculado con monedas mezcladas — CurrencyConverterPort convierte
+ * Caso de uso: guarda una "foto" del total actual de un subconjunto de
+ * cuentas del usuario (`scope`, convertidas a una sola moneda) para armar un
+ * histórico en el tiempo. El total se RECALCULA acá a partir de las cuentas
+ * reales, no se recibe del cliente: así el número guardado siempre refleja
+ * lo que el backend puede verificar, no lo que el frontend haya calculado (o
+ * mal calculado con monedas mezcladas — CurrencyConverterPort convierte
  * cualquier par que soporte Frankfurter, no solo USD/MXN).
  */
 @Injectable()
@@ -30,15 +32,36 @@ export class CreateBalanceSnapshotUseCase {
     private readonly snapshotRepository: BalanceSnapshotRepositoryPort,
   ) {}
 
-  async execute(userId: string, currency: string): Promise<BalanceSnapshot> {
+  async execute(
+    userId: string,
+    currency: string,
+    scope: BalanceSnapshotScope,
+  ): Promise<BalanceSnapshot> {
     const targetCurrency = currency.toUpperCase();
     const accounts = await this.accountRepository.findByUserId(userId);
-    const totalAmount = await this.computeTotal(accounts, targetCurrency);
+    const scopedAccounts = this.filterByScope(accounts, scope);
+    const totalAmount = await this.computeTotal(scopedAccounts, targetCurrency);
 
     return this.snapshotRepository.create({
       userId,
       total: Money.of(totalAmount, targetCurrency),
+      scope,
     });
+  }
+
+  // "Largo y mediano plazo" es un solo grupo (a propósito, ver el pedido
+  // original): todo lo que no sea corto plazo/liquidez.
+  private filterByScope(
+    accounts: Account[],
+    scope: BalanceSnapshotScope,
+  ): Account[] {
+    if (scope === BalanceSnapshotScope.SHORT) {
+      return accounts.filter((account) => account.term === AccountTerm.SHORT);
+    }
+    if (scope === BalanceSnapshotScope.LONG_MEDIUM) {
+      return accounts.filter((account) => account.term !== AccountTerm.SHORT);
+    }
+    return accounts;
   }
 
   private async computeTotal(

@@ -36,6 +36,7 @@ export class TypeOrmBalanceSnapshotRepository implements BalanceSnapshotReposito
       userId: data.userId,
       totalAmount: data.total.amount,
       currency: data.total.currency,
+      scope: data.scope,
     });
     const savedRow = await this.repository.save(row);
     return this.toDomain(savedRow);
@@ -51,6 +52,7 @@ export class TypeOrmBalanceSnapshotRepository implements BalanceSnapshotReposito
       row.id,
       row.userId,
       Money.of(row.totalAmount, row.currency),
+      row.scope,
       row.createdAt,
     );
   }
