@@ -106,8 +106,42 @@ describe('AccountsController', () => {
 
     // eslint-disable-next-line @typescript-eslint/unbound-method -- jest.fn() no usa `this`
     expect(listAccounts.execute).toHaveBeenCalledWith('user-1');
-    expect(response).toHaveLength(1);
-    expect(response[0].institutionName).toBe('BBVA');
+    expect(response.accounts).toHaveLength(1);
+    expect(response.accounts[0].institutionName).toBe('BBVA');
+  });
+
+  it('suma el rendimiento anual y el mensual del total de cuentas, por separado', async () => {
+    const accountA = new Account(
+      'account-1',
+      'user-1',
+      'BBVA',
+      InstitutionType.BANK,
+      Money.of(10000, 'MXN'),
+      [{ upToAmount: null, annualRate: 8.5 }], // 850 anual
+      AccountTerm.LONG,
+      new Date('2026-01-01T00:00:00.000Z'),
+    );
+    const accountB = new Account(
+      'account-2',
+      'user-1',
+      'Klar',
+      InstitutionType.SOFIPO,
+      Money.of(30000, 'MXN'),
+      [
+        { upToAmount: 25000, annualRate: 15 },
+        { upToAmount: null, annualRate: 6 },
+      ], // 4050 anual
+      AccountTerm.LONG,
+      new Date('2026-01-01T00:00:00.000Z'),
+    );
+    listAccounts.execute.mockResolvedValue([accountA, accountB]);
+
+    const response = await controller.list(currentUser);
+
+    // 850 + 4050 = 4900
+    expect(response.totalAnnualYield).toBeCloseTo(4900);
+    // 4900 / 12, no la suma junto con el anual
+    expect(response.totalMonthlyYield).toBeCloseTo(4900 / 12);
   });
 
   it('edita la cuenta usando el id del usuario autenticado, con varios tramos', async () => {

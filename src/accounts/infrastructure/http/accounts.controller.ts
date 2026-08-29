@@ -22,6 +22,7 @@ import { UpdateAccountUseCase } from '../../application/update-account/update-ac
 import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
 import { InvalidRateTiersError } from '../../domain/errors/invalid-rate-tiers.error';
 import { AccountResponseDto } from './dto/account-response.dto';
+import { AccountsListResponseDto } from './dto/accounts-list-response.dto';
 import { CreateAccountDto } from './dto/create-account.dto';
 
 /**
@@ -64,9 +65,9 @@ export class AccountsController {
   @Get()
   async list(
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<AccountResponseDto[]> {
+  ): Promise<AccountsListResponseDto> {
     const accounts = await this.listAccounts.execute(user.id);
-    return accounts.map((account) => AccountResponseDto.fromDomain(account));
+    return AccountsListResponseDto.fromDomain(accounts);
   }
 
   @Patch(':id')
